@@ -6,11 +6,12 @@
 
 import { useState, useEffect } from 'react';
 import { UserCog, Plus, X, Eye, Edit2, Trash2 } from 'lucide-react';
-import { supabase } from '@/lib/supabase/client';
+import { createClient } from '@/lib/supabase/client';
 import { formatDate, formatCurrency, translateShift, getInitials } from '@/lib/utils';
 import type { Employee, User } from '@/types/database';
 
 export default function EmployeesPage() {
+    const supabase = createClient();
     const [employees, setEmployees] = useState<(Employee & { user: User })[]>([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
@@ -72,6 +73,7 @@ export default function EmployeesPage() {
 }
 
 function EmployeeModal({ onClose, onSave }: { onClose: () => void; onSave: () => void }) {
+    const supabase = createClient();
     const [form, setForm] = useState({ name: '', email: '', phone: '', address: '', shift: 'full', salary: 0, emergency_contact: '' });
     const [loading, setLoading] = useState(false);
 

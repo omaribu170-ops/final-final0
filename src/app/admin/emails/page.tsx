@@ -6,10 +6,11 @@
 
 import { useState, useEffect } from 'react';
 import { Mail, Send, Users, Check } from 'lucide-react';
-import { supabase } from '@/lib/supabase/client';
+import { createClient } from '@/lib/supabase/client';
 import type { User } from '@/types/database';
 
 export default function EmailsPage() {
+    const supabase = createClient();
     const [users, setUsers] = useState<User[]>([]);
     const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
     const [selectAll, setSelectAll] = useState(false);

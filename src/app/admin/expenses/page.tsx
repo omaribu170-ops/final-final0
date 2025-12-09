@@ -6,13 +6,14 @@
 
 import { useState, useEffect } from 'react';
 import { Wallet, Plus, X, Download, Trash2 } from 'lucide-react';
-import { supabase } from '@/lib/supabase/client';
+import { createClient } from '@/lib/supabase/client';
 import { formatCurrency, formatDate, exportToCSV } from '@/lib/utils';
 import type { Expense } from '@/types/database';
 
 const categories = { rent: 'إيجار', utilities: 'فواتير', salary: 'مرتبات', supplies: 'مستلزمات', maintenance: 'صيانة', other: 'أخرى' };
 
 export default function ExpensesPage() {
+    const supabase = createClient();
     const [expenses, setExpenses] = useState<Expense[]>([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
@@ -60,6 +61,7 @@ export default function ExpensesPage() {
 }
 
 function ExpenseModal({ onClose, onSave }: { onClose: () => void; onSave: () => void }) {
+    const supabase = createClient();
     const [form, setForm] = useState({ title: '', description: '', amount: 0, category: 'other', expense_date: new Date().toISOString().split('T')[0] });
     const [loading, setLoading] = useState(false);
 

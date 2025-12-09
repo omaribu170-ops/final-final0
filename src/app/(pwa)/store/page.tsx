@@ -7,12 +7,13 @@
 
 import { useState, useEffect } from 'react';
 import { ShoppingBag, Plus, Minus, ShoppingCart, X, Check, Coffee, Pizza } from 'lucide-react';
-import { supabase } from '@/lib/supabase/client';
+import { createClient } from '@/lib/supabase/client';
 import { formatCurrency, translateProductType } from '@/lib/utils';
 import type { Product, Session } from '@/types/database';
 
 export default function StorePage() {
     const [products, setProducts] = useState<Product[]>([]);
+    const supabase = createClient();
     const [activeSession, setActiveSession] = useState<Session | null>(null);
     const [cart, setCart] = useState<{ id: string; quantity: number }[]>([]);
     const [loading, setLoading] = useState(true);

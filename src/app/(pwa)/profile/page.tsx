@@ -7,12 +7,13 @@
 
 import { useState, useEffect } from 'react';
 import { User, Mail, Phone, Wallet, Clock, Trophy, Edit2, LogOut, Share2, Copy, Check, Plus } from 'lucide-react';
-import { supabase } from '@/lib/supabase/client';
+import { createClient } from '@/lib/supabase/client';
 import { formatCurrency, copyToClipboard, getInitials } from '@/lib/utils';
 import type { User as UserType } from '@/types/database';
 
 export default function ProfilePage() {
     const [user, setUser] = useState<UserType | null>(null);
+    const supabase = createClient();
     const [loading, setLoading] = useState(true);
     const [copied, setCopied] = useState(false);
     const [stats, setStats] = useState({ hours: 0, sessions: 0, games: 0 });

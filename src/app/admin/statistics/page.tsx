@@ -20,13 +20,14 @@ import {
     Trophy,
     Target,
 } from 'lucide-react';
-import { supabase } from '@/lib/supabase/client';
+import { createClient } from '@/lib/supabase/client';
 import { formatCurrency, formatNumber, getStartOfDay, getStartOfMonth } from '@/lib/utils';
 
 // =====================================================
 // الصفحة الرئيسية
 // =====================================================
 export default function StatisticsPage() {
+    const supabase = createClient();
     const [period, setPeriod] = useState<'daily' | 'monthly' | 'half_yearly' | 'yearly'>('monthly');
     const [stats, setStats] = useState({
         totalRevenue: 0,
@@ -413,8 +414,8 @@ function TopListCard({
                         <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-white/5">
                             <div className="flex items-center gap-3">
                                 <span className={`w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold ${i === 0 ? 'bg-yellow-500 text-black' :
-                                        i === 1 ? 'bg-gray-400 text-black' :
-                                            'bg-orange-600 text-white'
+                                    i === 1 ? 'bg-gray-400 text-black' :
+                                        'bg-orange-600 text-white'
                                     }`}>
                                     {i + 1}
                                 </span>

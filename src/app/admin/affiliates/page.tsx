@@ -6,11 +6,12 @@
 
 import { useState, useEffect } from 'react';
 import { Share2, Users, Wallet, Copy, Check } from 'lucide-react';
-import { supabase } from '@/lib/supabase/client';
+import { createClient } from '@/lib/supabase/client';
 import { formatCurrency, formatDate, getInitials, copyToClipboard } from '@/lib/utils';
 import type { User, AffiliateEarning } from '@/types/database';
 
 export default function AffiliatesPage() {
+    const supabase = createClient();
     const [affiliates, setAffiliates] = useState<(User & { earnings: AffiliateEarning[] })[]>([]);
     const [loading, setLoading] = useState(true);
     const [copiedCode, setCopiedCode] = useState<string | null>(null);
