@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Session, Table } from '@/types';
-import { X, DollarSign, CreditCard, Wallet, Printer } from 'lucide-react';
+import { X, DollarSign, CreditCard, Wallet, Printer, Receipt } from 'lucide-react';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 // Note: We need a font that supports Arabic for jsPDF, typically requires importing a base64 font string.
