@@ -1,122 +1,71 @@
-// =====================================================
-// The Hub - Notes App
-// تطبيق الملاحظات
-// =====================================================
-
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Search, Pin, Trash2, Edit2, X, Check } from 'lucide-react';
-import { supabase } from '@/lib/supabase/client';
-import { formatDate } from '@/lib/utils';
-import type { Note } from '@/types/database';
-
-const COLORS = ['#ffffff', '#fff59d', '#a5d6a7', '#90caf9', '#f48fb1', '#ffcc80'];
+import { Plus, Trash, Save } from 'lucide-react';
 
 export default function NotesPage() {
-    const [notes, setNotes] = useState<Note[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [search, setSearch] = useState('');
-    const [editing, setEditing] = useState<Note | null>(null);
-    const [showNew, setShowNew] = useState(false);
+    const [notes, setNotes] = useState<{ id: number, content: string, date: string }[]>([]);
+    const [input, setInput] = useState('');
 
-    useEffect(() => { fetchNotes(); }, []);
+    useEffect(() => {
+        const saved = localStorage.getItem('hub-notes');
+        if (saved) setNotes(JSON.parse(saved));
+    }, []);
 
-    async function fetchNotes() {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-            const { data } = await supabase.from('notes').select('*').eq('user_id', session.user.id).order('is_pinned', { ascending: false }).order('updated_at', { ascending: false });
-            setNotes(data || []);
-        }
-        setLoading(false);
-    }
+    const addNote = () => {
+        if (!input.trim()) return;
+        const newNote = { id: Date.now(), content: input, date: new Date().toLocaleDateString('ar-EG') };
+        const updated = [newNote, ...notes];
+        setNotes(updated);
+        localStorage.setItem('hub-notes', JSON.stringify(updated));
+        setInput('');
+    };
 
-    async function handleSave(note: Partial<Note>) {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.user) return;
-
-        if (note.id) {
-            await supabase.from('notes').update({ title: note.title, content: note.content, color: note.color }).eq('id', note.id);
-        } else {
-            await supabase.from('notes').insert([{ ...note, user_id: session.user.id }]);
-        }
-        fetchNotes();
-        setEditing(null);
-        setShowNew(false);
-    }
-
-    async function handleDelete(id: string) {
-        await supabase.from('notes').delete().eq('id', id);
-        fetchNotes();
-    }
-
-    async function togglePin(note: Note) {
-        await supabase.from('notes').update({ is_pinned: !note.is_pinned }).eq('id', note.id);
-        fetchNotes();
-    }
-
-    const filtered = notes.filter(n => n.title?.toLowerCase().includes(search.toLowerCase()) || n.content?.toLowerCase().includes(search.toLowerCase()));
-
-    if (editing || showNew) {
-        return <NoteEditor note={editing} onSave={handleSave} onClose={() => { setEditing(null); setShowNew(false); }} onDelete={editing ? () => { handleDelete(editing.id); setEditing(null); } : undefined} />;
-    }
+    const deleteNote = (id: number) => {
+        const updated = notes.filter(n => n.id !== id);
+        setNotes(updated);
+        localStorage.setItem('hub-notes', JSON.stringify(updated));
+    };
 
     return (
-        <div className="pb-20">
-            <div className="flex items-center gap-4 mb-6">
-                <div className="relative flex-1">
-                    <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-workspace-muted" />
-                    <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="ابحث في الملاحظات..." className="input pr-12" />
+        <div className="p-6 space-y-6 pb-24">
+            <h1 className="text-2xl font-bold">ملاحظاتي 📝</h1>
+
+            {/* Input */}
+            <div className="bg-glass-white border border-glass-border p-4 rounded-2xl relative">
+                <textarea
+                    value={input}
+                    onChange={e => setInput(e.target.value)}
+                    placeholder="اكتب فكرة جديدة..."
+                    className="w-full bg-transparent outline-none resize-none h-24 text-lg"
+                />
+                <div className="flex justify-end mt-2">
+                    <button
+                        onClick={addNote}
+                        className="bg-hub-gradient px-4 py-2 rounded-xl text-white font-bold flex items-center gap-2 shadow-glow"
+                    >
+                        <Save size={16} /> حفظ
+                    </button>
                 </div>
-                <button onClick={() => setShowNew(true)} className="btn btn-primary"><Plus className="w-5 h-5" /></button>
             </div>
 
-            {loading ? (
-                <div className="grid grid-cols-2 gap-4">{[1, 2, 3, 4].map(i => <div key={i} className="h-32 bg-white/5 rounded-xl animate-pulse" />)}</div>
-            ) : filtered.length === 0 ? (
-                <div className="text-center py-16 text-workspace-muted">
-                    <p className="text-4xl mb-4">📝</p>
-                    <p>مفيش ملاحظات</p>
-                </div>
-            ) : (
-                <div className="grid grid-cols-2 gap-4">
-                    {filtered.map(note => (
-                        <div key={note.id} onClick={() => setEditing(note)} className="p-4 rounded-xl cursor-pointer hover:scale-105 transition-transform" style={{ backgroundColor: note.color || '#ffffff', color: '#222' }}>
-                            {note.is_pinned && <Pin className="w-4 h-4 mb-2" />}
-                            <h3 className="font-bold text-sm truncate">{note.title || 'بدون عنوان'}</h3>
-                            <p className="text-xs opacity-70 line-clamp-3 mt-1">{note.content}</p>
-                            <p className="text-xs opacity-50 mt-2">{formatDate(note.updated_at)}</p>
+            {/* List */}
+            <div className="space-y-4">
+                {notes.length === 0 && (
+                    <p className="text-center text-gray-500 py-10">مفيش ملاحظات لسه.</p>
+                )}
+                {notes.map(note => (
+                    <div key={note.id} className="bg-white/5 border border-white/5 p-4 rounded-2xl animate-fade-in group hover:bg-white/10 transition">
+                        <p className="whitespace-pre-wrap mb-3">{note.content}</p>
+                        <div className="flex justify-between items-center text-xs text-gray-500 border-t border-white/5 pt-3">
+                            <span>{note.date}</span>
+                            <button onClick={() => deleteNote(note.id)} className="text-red-400 hover:text-red-300 p-1">
+                                <Trash size={14} />
+                            </button>
                         </div>
-                    ))}
-                </div>
-            )}
-        </div>
-    );
-}
-
-function NoteEditor({ note, onSave, onClose, onDelete }: { note: Note | null; onSave: (n: Partial<Note>) => void; onClose: () => void; onDelete?: () => void }) {
-    const [title, setTitle] = useState(note?.title || '');
-    const [content, setContent] = useState(note?.content || '');
-    const [color, setColor] = useState(note?.color || '#ffffff');
-
-    return (
-        <div className="pb-20">
-            <div className="flex items-center justify-between mb-4">
-                <button onClick={onClose} className="p-2 rounded-lg hover:bg-white/5"><X className="w-5 h-5" /></button>
-                <div className="flex gap-2">
-                    {onDelete && <button onClick={onDelete} className="p-2 rounded-lg text-red-400 hover:bg-red-500/10"><Trash2 className="w-5 h-5" /></button>}
-                    <button onClick={() => onSave({ id: note?.id, title, content, color })} className="btn btn-primary"><Check className="w-5 h-5" />حفظ</button>
-                </div>
-            </div>
-
-            <div className="flex gap-2 mb-4">
-                {COLORS.map(c => (
-                    <button key={c} onClick={() => setColor(c)} className={`w-8 h-8 rounded-full border-2 ${color === c ? 'border-hub-orange' : 'border-transparent'}`} style={{ backgroundColor: c }} />
+                    </div>
                 ))}
             </div>
-
-            <input type="text" value={title} onChange={e => setTitle(e.target.value)} placeholder="العنوان..." className="w-full bg-transparent text-2xl font-bold outline-none mb-4" />
-            <textarea value={content} onChange={e => setContent(e.target.value)} placeholder="اكتب ملاحظتك هنا..." className="w-full bg-transparent outline-none resize-none min-h-[50vh]" />
         </div>
     );
 }

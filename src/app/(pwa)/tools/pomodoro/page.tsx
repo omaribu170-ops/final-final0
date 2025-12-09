@@ -1,54 +1,25 @@
-// =====================================================
-// The Hub - Pomodoro Timer
-// تايمر بومودورو للتركيز
-// =====================================================
-
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { Play, Pause, RotateCcw, Coffee, Brain } from 'lucide-react';
-
-const WORK_TIME = 25 * 60; // 25 دقيقة
-const BREAK_TIME = 5 * 60; // 5 دقائق
-const LONG_BREAK_TIME = 15 * 60; // 15 دقيقة
+import { useState, useEffect } from 'react';
+import { Play, Pause, RefreshCw } from 'lucide-react';
 
 export default function PomodoroPage() {
-    const [timeLeft, setTimeLeft] = useState(WORK_TIME);
-    const [isRunning, setIsRunning] = useState(false);
-    const [mode, setMode] = useState<'work' | 'break' | 'longBreak'>('work');
-    const [sessions, setSessions] = useState(0);
-
-    const totalTime = mode === 'work' ? WORK_TIME : mode === 'break' ? BREAK_TIME : LONG_BREAK_TIME;
-    const progress = ((totalTime - timeLeft) / totalTime) * 100;
+    const [timeLeft, setTimeLeft] = useState(25 * 60);
+    const [isActive, setIsActive] = useState(false);
+    const [mode, setMode] = useState<'focus' | 'break'>('focus');
 
     useEffect(() => {
         let interval: NodeJS.Timeout;
-        if (isRunning && timeLeft > 0) {
-            interval = setInterval(() => setTimeLeft(t => t - 1), 1000);
+        if (isActive && timeLeft > 0) {
+            interval = setInterval(() => setTimeLeft((t) => t - 1), 1000);
         } else if (timeLeft === 0) {
-            // انتهى الوقت
-            if (mode === 'work') {
-                const newSessions = sessions + 1;
-                setSessions(newSessions);
-                if (newSessions % 4 === 0) {
-                    setMode('longBreak');
-                    setTimeLeft(LONG_BREAK_TIME);
-                } else {
-                    setMode('break');
-                    setTimeLeft(BREAK_TIME);
-                }
-            } else {
-                setMode('work');
-                setTimeLeft(WORK_TIME);
-            }
-            setIsRunning(false);
-            // إشعار صوتي
-            if ('Notification' in window && Notification.permission === 'granted') {
-                new Notification('The Hub', { body: mode === 'work' ? 'خد استراحة!' : 'يلا نرجع للشغل!' });
-            }
+            alert(mode === 'focus' ? 'عاش يا بطل! خذ استراحة.' : 'يلا نرجع للشغل!');
+            setIsActive(false);
+            setMode(mode === 'focus' ? 'break' : 'focus');
+            setTimeLeft(mode === 'focus' ? 5 * 60 : 25 * 60);
         }
         return () => clearInterval(interval);
-    }, [isRunning, timeLeft, mode, sessions]);
+    }, [isActive, timeLeft, mode]);
 
     const formatTime = (seconds: number) => {
         const m = Math.floor(seconds / 60);
@@ -56,66 +27,46 @@ export default function PomodoroPage() {
         return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
     };
 
-    const reset = () => {
-        setIsRunning(false);
-        setTimeLeft(mode === 'work' ? WORK_TIME : mode === 'break' ? BREAK_TIME : LONG_BREAK_TIME);
-    };
-
-    const switchMode = (newMode: 'work' | 'break' | 'longBreak') => {
-        setMode(newMode);
-        setIsRunning(false);
-        setTimeLeft(newMode === 'work' ? WORK_TIME : newMode === 'break' ? BREAK_TIME : LONG_BREAK_TIME);
+    const toggleTimer = () => setIsActive(!isActive);
+    const resetTimer = () => {
+        setIsActive(false);
+        setTimeLeft(mode === 'focus' ? 25 * 60 : 5 * 60);
     };
 
     return (
-        <div className="min-h-[calc(100vh-200px)] flex flex-col items-center justify-center pb-20">
-            {/* اختيار الوضع */}
-            <div className="flex gap-2 mb-8">
-                {[
-                    { key: 'work', label: 'تركيز', icon: Brain },
-                    { key: 'break', label: 'استراحة', icon: Coffee },
-                    { key: 'longBreak', label: 'استراحة طويلة', icon: Coffee },
-                ].map(({ key, label, icon: Icon }) => (
-                    <button key={key} onClick={() => switchMode(key as typeof mode)} className={`px-4 py-2 rounded-xl flex items-center gap-2 text-sm ${mode === key ? 'gradient-main text-white' : 'bg-white/5'}`}>
-                        <Icon className="w-4 h-4" />{label}
-                    </button>
-                ))}
+        <div className="flex flex-col items-center justify-center min-h-[80vh] p-6 text-center space-y-8">
+            <div>
+                <h1 className="text-3xl font-bold mb-2">Pomodoro Focus</h1>
+                <p className="text-gray-400">{mode === 'focus' ? 'وقت التركيز 🧠' : 'وقت الراحة ☕'}</p>
             </div>
 
-            {/* التايمر */}
-            <div className="relative w-64 h-64 mb-8">
-                {/* الدائرة الخلفية */}
-                <svg className="w-full h-full transform -rotate-90">
-                    <circle cx="128" cy="128" r="120" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="8" />
-                    <circle cx="128" cy="128" r="120" fill="none" stroke="url(#gradient)" strokeWidth="8" strokeLinecap="round" strokeDasharray={`${2 * Math.PI * 120}`} strokeDashoffset={`${2 * Math.PI * 120 * (1 - progress / 100)}`} className="transition-all duration-1000" />
-                    <defs>
-                        <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                            <stop offset="0%" stopColor="#E63E32" />
-                            <stop offset="100%" stopColor="#F18A21" />
-                        </linearGradient>
-                    </defs>
-                </svg>
-                {/* الوقت */}
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <div className="text-5xl font-bold font-mono">{formatTime(timeLeft)}</div>
-                    <div className="text-workspace-muted mt-2">{mode === 'work' ? 'وقت التركيز' : 'وقت الاستراحة'}</div>
+            {/* Circles */}
+            <div className="relative w-64 h-64 flex items-center justify-center">
+                <div className={`absolute inset-0 rounded-full border-4 ${mode === 'focus' ? 'border-hub-red/30' : 'border-green-500/30'} animate-pulse`} />
+                <div className={`w-56 h-56 rounded-full ${mode === 'focus' ? 'bg-hub-red/10' : 'bg-green-500/10'} flex items-center justify-center border border-white/10 backdrop-blur-md`}>
+                    <span className="text-6xl font-mono font-bold tracking-wider">{formatTime(timeLeft)}</span>
                 </div>
             </div>
 
-            {/* أزرار التحكم */}
             <div className="flex gap-4">
-                <button onClick={reset} className="p-4 rounded-full bg-white/5 hover:bg-white/10">
-                    <RotateCcw className="w-6 h-6" />
+                <button
+                    onClick={toggleTimer}
+                    className={`w-16 h-16 rounded-2xl flex items-center justify-center text-white shadow-glow transition transform hover:scale-105
+                        ${isActive ? 'bg-yellow-600' : mode === 'focus' ? 'bg-hub-red' : 'bg-green-600'}
+                    `}
+                >
+                    {isActive ? <Pause size={24} /> : <Play size={24} className="ml-1" />}
                 </button>
-                <button onClick={() => setIsRunning(!isRunning)} className="p-6 rounded-full gradient-main shadow-lg shadow-hub-red/30">
-                    {isRunning ? <Pause className="w-8 h-8" /> : <Play className="w-8 h-8" />}
+                <button
+                    onClick={resetTimer}
+                    className="w-16 h-16 rounded-2xl bg-white/10 flex items-center justify-center text-gray-300 hover:bg-white/20 transition"
+                >
+                    <RefreshCw size={24} />
                 </button>
             </div>
 
-            {/* الجلسات */}
-            <div className="mt-8 text-center">
-                <div className="text-2xl font-bold">{sessions}</div>
-                <div className="text-workspace-muted">جلسة مكتملة</div>
+            <div className="bg-white/5 px-6 py-2 rounded-full text-sm font-bold text-gray-400">
+                {mode === 'focus' ? '25:00 Focus' : '05:00 Break'}
             </div>
         </div>
     );
