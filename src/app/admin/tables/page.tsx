@@ -1,470 +1,192 @@
-// =====================================================
-// The Hub - Tables Management Page
-// صفحة إدارة الترابيزات
-// =====================================================
-
 'use client';
 
-import { useState, useEffect } from 'react';
-import {
-    Table2,
-    Plus,
-    Edit2,
-    Trash2,
-    X,
-    Users,
-    Clock,
-    Wallet,
-    Image as ImageIcon,
-    Search,
-} from 'lucide-react';
-import { supabase } from '@/lib/supabase/client';
-import { formatCurrency } from '@/lib/utils';
-import type { Table } from '@/types/database';
+import { useEffect, useState } from 'react';
+import { createClient } from '@/lib/supabase/client';
+import { Table } from '@/types';
+import { Plus, Edit, Trash, DollarSign, Users as UsersIcon } from 'lucide-react';
 
-// =====================================================
-// الصفحة الرئيسية
-// =====================================================
 export default function TablesPage() {
     const [tables, setTables] = useState<Table[]>([]);
     const [loading, setLoading] = useState(true);
-    const [showModal, setShowModal] = useState(false);
-    const [editingTable, setEditingTable] = useState<Table | null>(null);
-    const [searchQuery, setSearchQuery] = useState('');
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [currentTable, setCurrentTable] = useState<Partial<Table>>({});
 
-    // =====================================================
-    // جلب الترابيزات
-    // =====================================================
+    const supabase = createClient();
+
     useEffect(() => {
         fetchTables();
     }, []);
 
-    async function fetchTables() {
-        try {
-            const { data, error } = await supabase
-                .from('tables')
-                .select('*')
-                .order('table_number');
+    const fetchTables = async () => {
+        const { data, error } = await supabase
+            .from('tables')
+            .select('*')
+            .order('name');
 
-            if (error) throw error;
-            setTables(data || []);
-        } catch (error) {
-            console.error('Error fetching tables:', error);
-        } finally {
-            setLoading(false);
+        if (data) setTables(data);
+        setLoading(false);
+    };
+
+    const handleSave = async () => {
+        if (!currentTable.name || !currentTable.price_per_hour) return;
+
+        const tableData = {
+            name: currentTable.name,
+            price_per_hour: currentTable.price_per_hour,
+            capacity_min: currentTable.capacity_min || 1,
+            capacity_max: currentTable.capacity_max || 4,
+            image_url: currentTable.image_url,
+            is_active: currentTable.is_active ?? true
+        };
+
+        if (currentTable.id) {
+            await supabase.from('tables').update(tableData).eq('id', currentTable.id);
+        } else {
+            await supabase.from('tables').insert([tableData]);
         }
-    }
 
-    // =====================================================
-    // حذف ترابيزة
-    // =====================================================
-    async function handleDelete(id: string) {
-        if (!confirm('هل أنت متأكد إنك عايز تحذف الترابيزة دي؟')) return;
+        setIsModalOpen(false);
+        setCurrentTable({});
+        fetchTables();
+    };
 
-        try {
-            const { error } = await supabase
-                .from('tables')
-                .delete()
-                .eq('id', id);
-
-            if (error) throw error;
-            setTables(tables.filter((t) => t.id !== id));
-        } catch (error) {
-            console.error('Error deleting table:', error);
-            alert('حصل مشكلة في حذف الترابيزة');
-        }
-    }
-
-    // =====================================================
-    // فلترة الترابيزات
-    // =====================================================
-    const filteredTables = tables.filter((table) =>
-        table.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        table.table_number.toString().includes(searchQuery)
-    );
+    const handleDelete = async (id: string) => {
+        if (!confirm('هل أنت متأكد من حذف هذه الطاولة؟')) return;
+        await supabase.from('tables').delete().eq('id', id);
+        fetchTables();
+    };
 
     return (
         <div className="space-y-6">
-            {/* =====================================================
-          الهيدر
-          ===================================================== */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold">الترابيزات</h1>
-                    <p className="text-workspace-muted">إدارة ترابيزات المكان</p>
-                </div>
-
+            <div className="flex justify-between items-center">
+                <h1 className="text-2xl font-bold">إدارة الطاولات</h1>
                 <button
-                    onClick={() => {
-                        setEditingTable(null);
-                        setShowModal(true);
-                    }}
-                    className="btn btn-primary"
+                    onClick={() => { setCurrentTable({}); setIsModalOpen(true); }}
+                    className="flex items-center gap-2 bg-hub-gradient text-white px-4 py-2 rounded-xl shadow-glow hover:opacity-90 transition"
                 >
-                    <Plus className="w-5 h-5" />
-                    إضافة ترابيزة
+                    <Plus size={20} />
+                    <span>إضافة طاولة</span>
                 </button>
             </div>
 
-            {/* =====================================================
-          البحث
-          ===================================================== */}
-            <div className="relative">
-                <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-workspace-muted" />
-                <input
-                    type="text"
-                    placeholder="ابحث عن ترابيزة..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="input pr-12"
-                />
-            </div>
-
-            {/* =====================================================
-          الترابيزات
-          ===================================================== */}
             {loading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {[...Array(6)].map((_, i) => (
-                        <div key={i} className="card animate-pulse">
-                            <div className="h-32 bg-white/5 rounded-xl mb-4" />
-                            <div className="h-6 bg-white/5 rounded w-1/2 mb-2" />
-                            <div className="h-4 bg-white/5 rounded w-1/3" />
-                        </div>
-                    ))}
-                </div>
-            ) : filteredTables.length === 0 ? (
-                <div className="text-center py-16">
-                    <Table2 className="w-20 h-20 mx-auto mb-4 text-workspace-muted opacity-50" />
-                    <h3 className="text-xl font-bold mb-2">مفيش ترابيزات</h3>
-                    <p className="text-workspace-muted mb-6">
-                        {searchQuery ? 'مفيش نتائج للبحث ده' : 'ابدأ بإضافة أول ترابيزة'}
-                    </p>
-                    {!searchQuery && (
-                        <button
-                            onClick={() => setShowModal(true)}
-                            className="btn btn-primary"
-                        >
-                            <Plus className="w-5 h-5" />
-                            إضافة ترابيزة
-                        </button>
-                    )}
-                </div>
+                <div className="text-center py-20">جاري التحميل...</div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {filteredTables.map((table) => (
-                        <div
-                            key={table.id}
-                            className="card group hover:border-hub-orange/30 transition-all"
-                        >
-                            {/* صورة الترابيزة */}
-                            <div className="relative h-32 bg-gradient-to-br from-workspace-primary to-workspace-secondary rounded-xl mb-4 overflow-hidden">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    {tables.map((table) => (
+                        <div key={table.id} className="bg-glass-white backdrop-blur-md rounded-2xl border border-glass-border overflow-hidden relative group">
+                            <div className="h-40 bg-gray-800/50 flex items-center justify-center text-gray-600">
                                 {table.image_url ? (
-                                    <img
-                                        src={table.image_url}
-                                        alt={table.name}
-                                        className="w-full h-full object-cover"
-                                    />
+                                    <img src={table.image_url} alt={table.name} className="w-full h-full object-cover" />
                                 ) : (
-                                    <div className="flex items-center justify-center h-full">
-                                        <Table2 className="w-12 h-12 text-workspace-muted" />
-                                    </div>
+                                    <span className="font-arabic">لا توجد صورة</span>
                                 )}
+                            </div>
 
-                                {/* رقم الترابيزة */}
-                                <div className="absolute top-3 right-3 px-3 py-1 rounded-lg gradient-main text-white font-bold text-sm">
-                                    #{table.table_number}
+                            <div className="p-4 space-y-3">
+                                <div className="flex justify-between items-start">
+                                    <h3 className="text-lg font-bold">{table.name}</h3>
+                                    <span className={`w-3 h-3 rounded-full ${table.is_active ? 'bg-green-500' : 'bg-red-500'}`} />
                                 </div>
 
-                                {/* أزرار التحكم */}
-                                <div className="absolute top-3 left-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <div className="flex items-center gap-2 text-gray-300">
+                                    <DollarSign size={16} className="text-hub-orange" />
+                                    <span>{table.price_per_hour} ج.م / ساعة</span>
+                                </div>
+
+                                <div className="flex items-center gap-2 text-gray-300">
+                                    <UsersIcon size={16} className="text-hub-yellow" />
+                                    <span>{table.capacity_min} - {table.capacity_max} أفراد</span>
+                                </div>
+
+                                <div className="flex gap-2 pt-2 border-t border-glass-border">
                                     <button
-                                        onClick={() => {
-                                            setEditingTable(table);
-                                            setShowModal(true);
-                                        }}
-                                        className="p-2 rounded-lg bg-black/50 hover:bg-black/70 transition-colors"
-                                        aria-label="تعديل"
+                                        onClick={() => { setCurrentTable(table); setIsModalOpen(true); }}
+                                        className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-blue-300 transition"
                                     >
-                                        <Edit2 className="w-4 h-4" />
+                                        <Edit size={16} /> تعديل
                                     </button>
                                     <button
                                         onClick={() => handleDelete(table.id)}
-                                        className="p-2 rounded-lg bg-red-500/50 hover:bg-red-500/70 transition-colors"
-                                        aria-label="حذف"
+                                        className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg bg-white/5 hover:bg-red-500/20 text-red-300 transition"
                                     >
-                                        <Trash2 className="w-4 h-4" />
+                                        <Trash size={16} /> حذف
                                     </button>
                                 </div>
-                            </div>
-
-                            {/* معلومات الترابيزة */}
-                            <h3 className="font-bold text-lg mb-3">{table.name}</h3>
-
-                            <div className="space-y-2 text-sm">
-                                <div className="flex items-center justify-between text-workspace-muted">
-                                    <div className="flex items-center gap-2">
-                                        <Users className="w-4 h-4" />
-                                        <span>السعة</span>
-                                    </div>
-                                    <span className="text-white">
-                                        {table.capacity_min} - {table.capacity_max} أشخاص
-                                    </span>
-                                </div>
-
-                                <div className="flex items-center justify-between text-workspace-muted">
-                                    <div className="flex items-center gap-2">
-                                        <Wallet className="w-4 h-4" />
-                                        <span>سعر الساعة/فرد</span>
-                                    </div>
-                                    <span className="text-hub-orange font-bold">
-                                        {formatCurrency(table.price_per_hour_per_person)}
-                                    </span>
-                                </div>
-                            </div>
-
-                            {/* حالة الترابيزة */}
-                            <div className="mt-4 pt-4 border-t border-white/8">
-                                <span className={`badge ${table.is_active ? 'badge-success' : 'badge-danger'}`}>
-                                    {table.is_active ? 'متاحة' : 'غير متاحة'}
-                                </span>
                             </div>
                         </div>
                     ))}
                 </div>
             )}
 
-            {/* =====================================================
-          Modal إضافة/تعديل ترابيزة
-          ===================================================== */}
-            {showModal && (
-                <TableModal
-                    table={editingTable}
-                    onClose={() => {
-                        setShowModal(false);
-                        setEditingTable(null);
-                    }}
-                    onSave={() => {
-                        fetchTables();
-                        setShowModal(false);
-                        setEditingTable(null);
-                    }}
-                />
-            )}
-        </div>
-    );
-}
+            {/* Modal */}
+            {isModalOpen && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+                    <div className="bg-[#1a1a2e] border border-glass-border w-full max-w-lg rounded-2xl p-6 shadow-2xl">
+                        <h2 className="text-xl font-bold mb-4">
+                            {currentTable.id ? 'تعديل طاولة' : 'إضافة طاولة جديدة'}
+                        </h2>
 
-// =====================================================
-// Modal إضافة/تعديل ترابيزة
-// =====================================================
-function TableModal({
-    table,
-    onClose,
-    onSave,
-}: {
-    table: Table | null;
-    onClose: () => void;
-    onSave: () => void;
-}) {
-    const [loading, setLoading] = useState(false);
-    const [formData, setFormData] = useState({
-        name: table?.name || '',
-        table_number: table?.table_number || '',
-        price_per_hour_per_person: table?.price_per_hour_per_person || '',
-        capacity_min: table?.capacity_min || 1,
-        capacity_max: table?.capacity_max || 4,
-        image_url: table?.image_url || '',
-        is_active: table?.is_active ?? true,
-    });
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm text-gray-400 mb-1">اسم الطاولة</label>
+                                <input
+                                    type="text"
+                                    value={currentTable.name || ''}
+                                    onChange={e => setCurrentTable({ ...currentTable, name: e.target.value })}
+                                    className="w-full bg-black/20 border border-glass-border rounded-lg px-4 py-2 focus:border-hub-orange outline-none"
+                                />
+                            </div>
 
-    async function handleSubmit(e: React.FormEvent) {
-        e.preventDefault();
-        setLoading(true);
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm text-gray-400 mb-1">السعر / ساعة</label>
+                                    <input
+                                        type="number"
+                                        value={currentTable.price_per_hour || ''}
+                                        onChange={e => setCurrentTable({ ...currentTable, price_per_hour: parseFloat(e.target.value) })}
+                                        className="w-full bg-black/20 border border-glass-border rounded-lg px-4 py-2 focus:border-hub-orange outline-none"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm text-gray-400 mb-1">السعة (أفراد)</label>
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="number"
+                                            placeholder="Min"
+                                            value={currentTable.capacity_min || ''}
+                                            onChange={e => setCurrentTable({ ...currentTable, capacity_min: parseInt(e.target.value) })}
+                                            className="w-1/2 bg-black/20 border border-glass-border rounded-lg px-2 py-2 focus:border-hub-orange outline-none"
+                                        />
+                                        <input
+                                            type="number"
+                                            placeholder="Max"
+                                            value={currentTable.capacity_max || ''}
+                                            onChange={e => setCurrentTable({ ...currentTable, capacity_max: parseInt(e.target.value) })}
+                                            className="w-1/2 bg-black/20 border border-glass-border rounded-lg px-2 py-2 focus:border-hub-orange outline-none"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
 
-        try {
-            const data = {
-                name: formData.name,
-                table_number: Number(formData.table_number),
-                price_per_hour_per_person: Number(formData.price_per_hour_per_person),
-                capacity_min: Number(formData.capacity_min),
-                capacity_max: Number(formData.capacity_max),
-                image_url: formData.image_url || null,
-                is_active: formData.is_active,
-            };
-
-            if (table) {
-                // تعديل
-                const { error } = await supabase
-                    .from('tables')
-                    .update(data)
-                    .eq('id', table.id);
-                if (error) throw error;
-            } else {
-                // إضافة
-                const { error } = await supabase
-                    .from('tables')
-                    .insert([data]);
-                if (error) throw error;
-            }
-
-            onSave();
-        } catch (error) {
-            console.error('Error saving table:', error);
-            alert('حصل مشكلة في حفظ الترابيزة');
-        } finally {
-            setLoading(false);
-        }
-    }
-
-    return (
-        <div className="modal-overlay" onClick={onClose}>
-            <div className="modal" onClick={(e) => e.stopPropagation()}>
-                {/* الهيدر */}
-                <div className="modal-header">
-                    <h2 className="text-xl font-bold">
-                        {table ? 'تعديل ترابيزة' : 'إضافة ترابيزة جديدة'}
-                    </h2>
-                    <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-lg">
-                        <X className="w-5 h-5" />
-                    </button>
+                            <div className="flex gap-3 justify-end mt-6">
+                                <button
+                                    onClick={() => setIsModalOpen(false)}
+                                    className="px-4 py-2 rounded-lg hover:bg-white/10 transition"
+                                >
+                                    إلغاء
+                                </button>
+                                <button
+                                    onClick={handleSave}
+                                    className="bg-hub-gradient text-white px-6 py-2 rounded-lg hover:opacity-90 transition"
+                                >
+                                    حفظ
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-
-                {/* الفورم */}
-                <form onSubmit={handleSubmit}>
-                    <div className="modal-body space-y-4">
-                        {/* اسم الترابيزة */}
-                        <div>
-                            <label className="block text-sm text-workspace-muted mb-2">
-                                اسم الترابيزة *
-                            </label>
-                            <input
-                                type="text"
-                                required
-                                value={formData.name}
-                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                className="input"
-                                placeholder="مثال: ترابيزة VIP 1"
-                            />
-                        </div>
-
-                        {/* رقم الترابيزة */}
-                        <div>
-                            <label className="block text-sm text-workspace-muted mb-2">
-                                رقم الترابيزة *
-                            </label>
-                            <input
-                                type="number"
-                                required
-                                min="1"
-                                value={formData.table_number}
-                                onChange={(e) => setFormData({ ...formData, table_number: e.target.value })}
-                                className="input"
-                                placeholder="مثال: 1"
-                            />
-                        </div>
-
-                        {/* سعر الساعة */}
-                        <div>
-                            <label className="block text-sm text-workspace-muted mb-2">
-                                سعر الساعة للفرد (ج.م) *
-                            </label>
-                            <input
-                                type="number"
-                                required
-                                min="0"
-                                step="0.01"
-                                value={formData.price_per_hour_per_person}
-                                onChange={(e) => setFormData({ ...formData, price_per_hour_per_person: e.target.value })}
-                                className="input"
-                                placeholder="مثال: 50"
-                            />
-                        </div>
-
-                        {/* السعة */}
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm text-workspace-muted mb-2">
-                                    أقل عدد أفراد
-                                </label>
-                                <input
-                                    type="number"
-                                    min="1"
-                                    value={formData.capacity_min}
-                                    onChange={(e) => setFormData({ ...formData, capacity_min: Number(e.target.value) })}
-                                    className="input"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm text-workspace-muted mb-2">
-                                    أكثر عدد أفراد *
-                                </label>
-                                <input
-                                    type="number"
-                                    required
-                                    min="1"
-                                    value={formData.capacity_max}
-                                    onChange={(e) => setFormData({ ...formData, capacity_max: Number(e.target.value) })}
-                                    className="input"
-                                />
-                            </div>
-                        </div>
-
-                        {/* رابط الصورة */}
-                        <div>
-                            <label className="block text-sm text-workspace-muted mb-2">
-                                رابط الصورة (اختياري)
-                            </label>
-                            <input
-                                type="url"
-                                value={formData.image_url}
-                                onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                                className="input"
-                                placeholder="https://example.com/image.jpg"
-                            />
-                        </div>
-
-                        {/* الحالة */}
-                        <div className="flex items-center gap-3">
-                            <input
-                                type="checkbox"
-                                id="is_active"
-                                checked={formData.is_active}
-                                onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                                className="w-5 h-5 rounded accent-hub-orange"
-                            />
-                            <label htmlFor="is_active" className="cursor-pointer">
-                                الترابيزة متاحة للاستخدام
-                            </label>
-                        </div>
-                    </div>
-
-                    {/* الأزرار */}
-                    <div className="modal-footer">
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="btn btn-secondary"
-                            disabled={loading}
-                        >
-                            إلغاء
-                        </button>
-                        <button
-                            type="submit"
-                            className="btn btn-primary"
-                            disabled={loading}
-                        >
-                            {loading ? (
-                                <span className="loading" />
-                            ) : table ? (
-                                'حفظ التعديلات'
-                            ) : (
-                                'إضافة الترابيزة'
-                            )}
-                        </button>
-                    </div>
-                </form>
-            </div>
+            )}
         </div>
     );
 }

@@ -1,250 +1,55 @@
-// =====================================================
-// The Hub - Admin Dashboard Home
-// الصفحة الرئيسية للوحة التحكم
-// =====================================================
-
-import {
-    Users,
-    Clock,
-    Wallet,
-    TrendingUp,
-    Table2,
-    Gamepad2,
-    CalendarCheck,
-    AlertCircle,
-} from 'lucide-react';
-
-// =====================================================
-// بطاقة الإحصائية
-// =====================================================
-function StatCard({
-    title,
-    value,
-    subtitle,
-    icon: Icon,
-    trend,
-    color = 'orange',
-}: {
-    title: string;
-    value: string | number;
-    subtitle?: string;
-    icon: React.ElementType;
-    trend?: { value: number; positive: boolean };
-    color?: 'red' | 'orange' | 'yellow' | 'green' | 'blue';
-}) {
-    const colors = {
-        red: 'from-red-500/20 to-red-600/5 border-red-500/20',
-        orange: 'from-orange-500/20 to-orange-600/5 border-orange-500/20',
-        yellow: 'from-yellow-500/20 to-yellow-600/5 border-yellow-500/20',
-        green: 'from-green-500/20 to-green-600/5 border-green-500/20',
-        blue: 'from-blue-500/20 to-blue-600/5 border-blue-500/20',
-    };
-
-    const iconColors = {
-        red: 'text-red-400',
-        orange: 'text-orange-400',
-        yellow: 'text-yellow-400',
-        green: 'text-green-400',
-        blue: 'text-blue-400',
-    };
-
-    return (
-        <div className={`relative overflow-hidden rounded-2xl bg-gradient-to-br ${colors[color]} border p-6`}>
-            {/* أيقونة الخلفية */}
-            <div className="absolute top-4 left-4 opacity-20">
-                <Icon className="w-16 h-16" />
-            </div>
-
-            {/* المحتوى */}
-            <div className="relative">
-                <div className="flex items-center gap-3 mb-4">
-                    <div className={`p-2 rounded-xl bg-white/10 ${iconColors[color]}`}>
-                        <Icon className="w-5 h-5" />
-                    </div>
-                    <span className="text-workspace-muted text-sm">{title}</span>
-                </div>
-
-                <div className="text-3xl font-bold mb-1">{value}</div>
-
-                {subtitle && (
-                    <div className="text-workspace-muted text-sm">{subtitle}</div>
-                )}
-
-                {trend && (
-                    <div className={`flex items-center gap-1 mt-2 text-sm ${trend.positive ? 'text-green-400' : 'text-red-400'}`}>
-                        <TrendingUp className={`w-4 h-4 ${!trend.positive && 'rotate-180'}`} />
-                        <span>{trend.value}% من الأمس</span>
-                    </div>
-                )}
-            </div>
-        </div>
-    );
-}
-
-// =====================================================
-// الصفحة الرئيسية
-// =====================================================
 export default function AdminDashboard() {
-    // TODO: استبدال البيانات الثابتة ببيانات حقيقية من الـ Database
-    const stats = {
-        activeSessions: 5,
-        todayRevenue: 2450,
-        totalMembers: 156,
-        todayBookings: 8,
-        availableTables: 3,
-        upcomingGameNight: 'الخميس',
-    };
-
     return (
         <div className="space-y-8">
-            {/* =====================================================
-          الهيدر
-          ===================================================== */}
-            <div>
-                <h1 className="text-3xl font-bold mb-2">أهلاً بيك يا أدمن! 👋</h1>
-                <p className="text-workspace-muted">
-                    {new Date().toLocaleDateString('ar-EG', {
-                        weekday: 'long',
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                    })}
-                </p>
-            </div>
-
-            {/* =====================================================
-          الإحصائيات السريعة
-          ===================================================== */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <StatCard
-                    title="الجلسات النشطة"
-                    value={stats.activeSessions}
-                    subtitle="جلسة شغالة دلوقتي"
-                    icon={Clock}
-                    color="orange"
-                />
-                <StatCard
-                    title="إيرادات اليوم"
-                    value={`${stats.todayRevenue} ج.م`}
-                    icon={Wallet}
-                    trend={{ value: 12, positive: true }}
-                    color="green"
-                />
-                <StatCard
-                    title="إجمالي الأعضاء"
-                    value={stats.totalMembers}
-                    subtitle="عضو مسجل"
-                    icon={Users}
-                    color="blue"
-                />
-                <StatCard
-                    title="حجوزات اليوم"
-                    value={stats.todayBookings}
-                    subtitle="حجز جديد"
-                    icon={CalendarCheck}
-                    color="yellow"
-                />
-            </div>
-
-            {/* =====================================================
-          القسم الثاني - معلومات إضافية
-          ===================================================== */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* =====================================================
-            الجلسات النشطة
-            ===================================================== */}
-                <div className="lg:col-span-2 card">
-                    <div className="flex items-center justify-between mb-6">
-                        <h2 className="text-xl font-bold">الجلسات النشطة</h2>
-                        <a href="/admin/sessions" className="text-hub-orange text-sm hover:underline">
-                            عرض الكل ←
-                        </a>
-                    </div>
-
-                    {stats.activeSessions > 0 ? (
-                        <div className="space-y-4">
-                            {/* مثال على جلسة نشطة */}
-                            <div className="flex items-center justify-between p-4 rounded-xl bg-white/5">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 rounded-xl gradient-main flex items-center justify-center font-bold">
-                                        T1
-                                    </div>
-                                    <div>
-                                        <div className="font-medium">ترابيزة VIP 1</div>
-                                        <div className="text-sm text-workspace-muted">3 أشخاص • بدأت من ساعتين</div>
-                                    </div>
-                                </div>
-                                <div className="text-left">
-                                    <div className="font-bold text-hub-orange">150 ج.م</div>
-                                    <div className="text-xs text-workspace-muted">حتى الآن</div>
-                                </div>
-                            </div>
-
-                            <div className="flex items-center justify-between p-4 rounded-xl bg-white/5">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 rounded-xl gradient-main flex items-center justify-center font-bold">
-                                        T3
-                                    </div>
-                                    <div>
-                                        <div className="font-medium">ترابيزة عادية 1</div>
-                                        <div className="text-sm text-workspace-muted">2 أشخاص • بدأت من ساعة</div>
-                                    </div>
-                                </div>
-                                <div className="text-left">
-                                    <div className="font-bold text-hub-orange">60 ج.م</div>
-                                    <div className="text-xs text-workspace-muted">حتى الآن</div>
-                                </div>
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="text-center py-12 text-workspace-muted">
-                            <Clock className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                            <p>مفيش جلسات نشطة دلوقتي</p>
-                        </div>
-                    )}
+            {/* Header */}
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-3xl font-bold mb-2">لوحة التحكم</h1>
+                    <p className="text-gray-400">مرحباً بك في نظام إدارة The Hub</p>
                 </div>
+                <div className="bg-glass-white backdrop-blur-md border border-glass-border px-4 py-2 rounded-lg text-sm">
+                    {new Date().toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                </div>
+            </div>
 
-                {/* =====================================================
-            معلومات سريعة
-            ===================================================== */}
-                <div className="space-y-4">
-                    {/* الترابيزات المتاحة */}
-                    <div className="card">
-                        <div className="flex items-center gap-4">
-                            <div className="p-3 rounded-xl bg-green-500/20 text-green-400">
-                                <Table2 className="w-6 h-6" />
-                            </div>
-                            <div>
-                                <div className="text-2xl font-bold">{stats.availableTables}</div>
-                                <div className="text-workspace-muted text-sm">ترابيزة متاحة</div>
-                            </div>
-                        </div>
+            {/* Stats Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {[
+                    { title: 'الإيرادات اليومية', value: '4,200 ج.م', color: 'from-green-500 to-emerald-600' },
+                    { title: 'الجلسات النشطة', value: '12', color: 'from-blue-500 to-indigo-600' },
+                    { title: 'الأعضاء الجدد', value: '5', color: 'from-purple-500 to-pink-600' },
+                    { title: 'المهام المعلقة', value: '3', color: 'from-orange-500 to-red-600' },
+                ].map((stat, index) => (
+                    <div key={index} className="relative group overflow-hidden bg-glass-white backdrop-blur-md rounded-2xl p-6 border border-glass-border hover:border-hub-orange/50 transition-all duration-300">
+                        <div className={`absolute top-0 right-0 w-1 h-full bg-gradient-to-b ${stat.color}`} />
+                        <h3 className="text-gray-400 text-sm font-medium mb-2">{stat.title}</h3>
+                        <p className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
+                            {stat.value}
+                        </p>
                     </div>
+                ))}
+            </div>
 
-                    {/* ليلة الألعاب القادمة */}
-                    <div className="card">
-                        <div className="flex items-center gap-4">
-                            <div className="p-3 rounded-xl bg-purple-500/20 text-purple-400">
-                                <Gamepad2 className="w-6 h-6" />
-                            </div>
-                            <div>
-                                <div className="text-lg font-bold">{stats.upcomingGameNight}</div>
-                                <div className="text-workspace-muted text-sm">ليلة الألعاب القادمة</div>
-                            </div>
-                        </div>
+            {/* Content Placeholder */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 h-96">
+                <div className="lg:col-span-2 bg-glass-white backdrop-blur-glass rounded-2xl border border-glass-border p-6">
+                    <h3 className="text-xl font-bold mb-4">نشاط الجلسات</h3>
+                    <div className="flex items-center justify-center h-full text-gray-500">
+                        مخطط بياني (قريباً)
                     </div>
-
-                    {/* تنبيهات */}
-                    <div className="card border-yellow-500/30">
-                        <div className="flex items-center gap-4">
-                            <div className="p-3 rounded-xl bg-yellow-500/20 text-yellow-400">
-                                <AlertCircle className="w-6 h-6" />
+                </div>
+                <div className="bg-glass-white backdrop-blur-glass rounded-2xl border border-glass-border p-6">
+                    <h3 className="text-xl font-bold mb-4">آخر التنبيهات</h3>
+                    <div className="space-y-4">
+                        {[1, 2, 3].map((_, i) => (
+                            <div key={i} className="flex gap-3 items-start pb-4 border-b border-glass-border last:border-0">
+                                <div className="w-2 h-2 mt-2 rounded-full bg-hub-red shrink-0" />
+                                <div>
+                                    <p className="text-sm text-gray-200">قام أحمد محمد بفتح جلسة جديدة</p>
+                                    <span className="text-xs text-gray-500">منذ 5 دقائق</span>
+                                </div>
                             </div>
-                            <div>
-                                <div className="font-medium">3 تنبيهات</div>
-                                <div className="text-workspace-muted text-sm">محتاجة انتباه</div>
-                            </div>
-                        </div>
+                        ))}
                     </div>
                 </div>
             </div>

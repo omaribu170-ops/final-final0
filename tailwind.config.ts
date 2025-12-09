@@ -12,6 +12,9 @@ const config: Config = {
             fontFamily: {
                 arabic: ["IBM Plex Sans Arabic", "sans-serif"],
             },
+            backgroundImage: {
+                'hub-gradient': 'linear-gradient(90deg, #E63E32 0%, #F18A21 50%, #F8C033 100%)',
+            },
             // ألوان المشروع
             colors: {
                 // ألوان الـ Gradient الأساسي

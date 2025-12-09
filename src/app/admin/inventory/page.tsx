@@ -1,121 +1,166 @@
-// =====================================================
-// The Hub - Inventory Page (المخزن)
-// =====================================================
-
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Package, Plus, X, Edit2, AlertTriangle } from 'lucide-react';
-import { supabase } from '@/lib/supabase/client';
-import { formatCurrency, translateProductType } from '@/lib/utils';
-import type { Product } from '@/types/database';
+import { useEffect, useState } from 'react';
+import { createClient } from '@/lib/supabase/client';
+import { Product } from '@/types';
+import { Plus, Edit, Trash, Package, Search } from 'lucide-react';
 
 export default function InventoryPage() {
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
-    const [showModal, setShowModal] = useState(false);
-    const [editing, setEditing] = useState<Product | null>(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [currentProduct, setCurrentProduct] = useState<Partial<Product>>({ category: 'food' });
     const [filter, setFilter] = useState('all');
 
-    useEffect(() => { fetchData(); }, []);
+    const supabase = createClient();
 
-    async function fetchData() {
+    useEffect(() => {
+        fetchProducts();
+    }, []);
+
+    const fetchProducts = async () => {
         const { data } = await supabase.from('products').select('*').order('name');
-        setProducts(data || []);
+        if (data) setProducts(data);
         setLoading(false);
-    }
+    };
 
-    const filtered = filter === 'all' ? products : products.filter(p => p.type === filter);
-    const lowStock = products.filter(p => p.stock_quantity <= p.min_stock_alert);
+    const handleSave = async () => {
+        const { name, price, stock, category, image_url } = currentProduct;
+        if (!name || price === undefined) return;
+
+        const productData = {
+            name,
+            price,
+            stock: stock || 0,
+            category,
+            image_url,
+            // Simple logic: if category is 'asset', it's inventory
+            is_inventory: category === 'asset'
+        };
+
+        if (currentProduct.id) {
+            await supabase.from('products').update(productData).eq('id', currentProduct.id);
+        } else {
+            await supabase.from('products').insert([productData]);
+        }
+
+        setIsModalOpen(false);
+        setCurrentProduct({ category: 'food' });
+        fetchProducts();
+    };
+
+    const handleDelete = async (id: string) => {
+        if (confirm('حذف هذا المنتج؟')) {
+            await supabase.from('products').delete().eq('id', id);
+            fetchProducts();
+        }
+    };
+
+    const filteredProducts = products.filter(p =>
+        filter === 'all' ? true : p.category === filter
+    );
 
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
-                <div><h1 className="text-2xl font-bold">المخزن</h1><p className="text-workspace-muted">{products.length} منتج</p></div>
-                <button onClick={() => { setEditing(null); setShowModal(true); }} className="btn btn-primary"><Plus className="w-5 h-5" />إضافة منتج</button>
+                <h1 className="text-2xl font-bold">المخزون والمنتجات</h1>
+                <button
+                    onClick={() => { setCurrentProduct({ category: 'food' }); setIsModalOpen(true); }}
+                    className="flex items-center gap-2 bg-hub-gradient text-white px-4 py-2 rounded-xl shadow-glow"
+                >
+                    <Plus size={20} /> إضافة منتج
+                </button>
             </div>
 
-            {lowStock.length > 0 && (
-                <div className="p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/30 flex items-center gap-3">
-                    <AlertTriangle className="w-6 h-6 text-yellow-400" />
-                    <div><span className="font-bold text-yellow-400">{lowStock.length} منتج</span> وصل للحد الأدنى من المخزون</div>
-                </div>
-            )}
-
-            <div className="flex gap-2 flex-wrap">
-                {['all', 'food', 'drink', 'supply', 'equipment'].map(t => (
-                    <button key={t} onClick={() => setFilter(t)} className={`px-4 py-2 rounded-lg text-sm ${filter === t ? 'gradient-main text-white' : 'bg-white/5 text-workspace-muted'}`}>
-                        {t === 'all' ? 'الكل' : translateProductType(t)}
+            {/* Filters */}
+            <div className="flex gap-2 bg-white/5 p-1 rounded-xl w-fit">
+                {['all', 'food', 'drink', 'asset'].map(f => (
+                    <button
+                        key={f}
+                        onClick={() => setFilter(f)}
+                        className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${filter === f ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white'}`}
+                    >
+                        {f === 'all' ? 'الكل' : f === 'food' ? 'مأكولات' : f === 'drink' ? 'مشروبات' : 'أصول'}
                     </button>
                 ))}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {filtered.map(product => (
-                    <div key={product.id} className={`card ${product.stock_quantity <= product.min_stock_alert ? 'border-yellow-500/30' : ''}`}>
+            {/* Grid */}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {filteredProducts.map(product => (
+                    <div key={product.id} className="bg-glass-white backdrop-blur-md rounded-xl border border-glass-border p-4 hover:border-hub-orange/50 transition duration-300">
                         <div className="flex justify-between items-start mb-3">
-                            <div>
-                                <h3 className="font-bold">{product.name_ar || product.name}</h3>
-                                <span className="badge text-xs">{translateProductType(product.type)}</span>
+                            <div className={`p-2 rounded-lg ${product.category === 'asset' ? 'bg-purple-500/20 text-purple-400' : 'bg-orange-500/20 text-orange-400'}`}>
+                                <Package size={20} />
                             </div>
-                            <button onClick={() => { setEditing(product); setShowModal(true); }} className="p-2 hover:bg-white/5 rounded-lg"><Edit2 className="w-4 h-4" /></button>
+                            <div className="text-sm font-bold">{product.price} ج.م</div>
                         </div>
-                        <div className="flex justify-between items-center text-sm">
-                            <span className="text-workspace-muted">السعر</span>
-                            <span className="text-hub-orange font-bold">{formatCurrency(product.price)}</span>
-                        </div>
-                        <div className="flex justify-between items-center text-sm mt-2">
-                            <span className="text-workspace-muted">المخزون</span>
-                            <span className={product.stock_quantity <= product.min_stock_alert ? 'text-yellow-400 font-bold' : ''}>{product.stock_quantity}</span>
+                        <h3 className="font-bold mb-1">{product.name}</h3>
+                        <p className="text-xs text-gray-400 mb-4">الكمية: {product.stock}</p>
+
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => { setCurrentProduct(product); setIsModalOpen(true); }}
+                                className="flex-1 py-1.5 bg-white/5 rounded-lg text-xs hover:bg-white/10"
+                            >
+                                تعديل
+                            </button>
+                            <button
+                                onClick={() => handleDelete(product.id)}
+                                className="px-3 py-1.5 bg-red-500/10 text-red-400 rounded-lg text-xs hover:bg-red-500/20"
+                            >
+                                <Trash size={14} />
+                            </button>
                         </div>
                     </div>
                 ))}
             </div>
 
-            {showModal && <ProductModal product={editing} onClose={() => setShowModal(false)} onSave={() => { fetchData(); setShowModal(false); }} />}
-        </div>
-    );
-}
+            {/* Modal */}
+            {isModalOpen && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+                    <div className="bg-[#1a1a2e] border border-glass-border w-full max-w-lg rounded-2xl p-6 shadow-2xl space-y-4">
+                        <h2 className="text-xl font-bold">بيانات المنتج</h2>
 
-function ProductModal({ product, onClose, onSave }: { product: Product | null; onClose: () => void; onSave: () => void }) {
-    const [form, setForm] = useState({ name: product?.name || '', name_ar: product?.name_ar || '', type: product?.type || 'food', price: product?.price || 0, cost_price: product?.cost_price || 0, stock_quantity: product?.stock_quantity || 0, min_stock_alert: product?.min_stock_alert || 5, is_for_sale: product?.is_for_sale ?? true });
-    const [loading, setLoading] = useState(false);
+                        <input
+                            placeholder="اسم المنتج"
+                            value={currentProduct.name || ''}
+                            onChange={e => setCurrentProduct({ ...currentProduct, name: e.target.value })}
+                            className="w-full bg-black/20 border border-glass-border rounded-lg px-4 py-2"
+                        />
 
-    async function handleSubmit(e: React.FormEvent) {
-        e.preventDefault();
-        setLoading(true);
-        if (product) {
-            await supabase.from('products').update(form).eq('id', product.id);
-        } else {
-            await supabase.from('products').insert([form]);
-        }
-        onSave();
-    }
+                        <div className="grid grid-cols-2 gap-4">
+                            <input
+                                type="number" placeholder="السعر"
+                                value={currentProduct.price || ''}
+                                onChange={e => setCurrentProduct({ ...currentProduct, price: parseFloat(e.target.value) })}
+                                className="bg-black/20 border border-glass-border rounded-lg px-4 py-2"
+                            />
+                            <input
+                                type="number" placeholder="الكمية"
+                                value={currentProduct.stock || ''}
+                                onChange={e => setCurrentProduct({ ...currentProduct, stock: parseInt(e.target.value) })}
+                                className="bg-black/20 border border-glass-border rounded-lg px-4 py-2"
+                            />
+                        </div>
 
-    return (
-        <div className="modal-overlay" onClick={onClose}>
-            <div className="modal" onClick={e => e.stopPropagation()}>
-                <div className="modal-header"><h2 className="text-xl font-bold">{product ? 'تعديل' : 'إضافة'} منتج</h2><button onClick={onClose}><X className="w-5 h-5" /></button></div>
-                <form onSubmit={handleSubmit}>
-                    <div className="modal-body space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                            <div><label className="block text-sm mb-2">الاسم (EN)</label><input required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className="input" /></div>
-                            <div><label className="block text-sm mb-2">الاسم (AR)</label><input value={form.name_ar} onChange={e => setForm({ ...form, name_ar: e.target.value })} className="input" /></div>
+                        <select
+                            value={currentProduct.category || 'food'}
+                            onChange={e => setCurrentProduct({ ...currentProduct, category: e.target.value })}
+                            className="w-full bg-black/20 border border-glass-border rounded-lg px-4 py-2 text-gray-300"
+                        >
+                            <option value="food">مأكولات</option>
+                            <option value="drink">مشروبات</option>
+                            <option value="asset">أصول ثابتة</option>
+                        </select>
+
+                        <div className="flex justify-end gap-3 pt-4">
+                            <button onClick={() => setIsModalOpen(false)} className="px-4 py-2 rounded-lg hover:bg-white/10">إلغاء</button>
+                            <button onClick={handleSave} className="bg-hub-gradient px-6 py-2 rounded-lg text-white">حفظ</button>
                         </div>
-                        <div><label className="block text-sm mb-2">النوع</label><select value={form.type} onChange={e => setForm({ ...form, type: e.target.value as Product['type'] })} className="input"><option value="food">أكل</option><option value="drink">مشروبات</option><option value="supply">مستلزمات</option><option value="equipment">معدات</option></select></div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div><label className="block text-sm mb-2">سعر البيع</label><input type="number" min="0" value={form.price} onChange={e => setForm({ ...form, price: +e.target.value })} className="input" /></div>
-                            <div><label className="block text-sm mb-2">سعر التكلفة</label><input type="number" min="0" value={form.cost_price} onChange={e => setForm({ ...form, cost_price: +e.target.value })} className="input" /></div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div><label className="block text-sm mb-2">المخزون</label><input type="number" min="0" value={form.stock_quantity} onChange={e => setForm({ ...form, stock_quantity: +e.target.value })} className="input" /></div>
-                            <div><label className="block text-sm mb-2">حد التنبيه</label><input type="number" min="0" value={form.min_stock_alert} onChange={e => setForm({ ...form, min_stock_alert: +e.target.value })} className="input" /></div>
-                        </div>
-                        <label className="flex items-center gap-3 cursor-pointer"><input type="checkbox" checked={form.is_for_sale} onChange={e => setForm({ ...form, is_for_sale: e.target.checked })} className="w-5 h-5" /><span>متاح للبيع</span></label>
                     </div>
-                    <div className="modal-footer"><button type="button" onClick={onClose} className="btn btn-secondary">إلغاء</button><button type="submit" className="btn btn-primary" disabled={loading}>{loading ? '...' : 'حفظ'}</button></div>
-                </form>
-            </div>
+                </div>
+            )}
         </div>
     );
 }

@@ -1,88 +1,96 @@
-// =====================================================
-// The Hub - Login Page
-// صفحة تسجيل الدخول
-// =====================================================
-
 'use client';
 
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
-import { createBrowserClient } from '@supabase/ssr';
+import { createClient } from '@/lib/supabase/client';
+import { Lock, Phone } from 'lucide-react';
 
 export default function LoginPage() {
-    const router = useRouter();
-    const [email, setEmail] = useState('');
+    const [phone, setPhone] = useState('');
     const [password, setPassword] = useState('');
-    const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
+    const router = useRouter();
+    const supabase = createClient();
 
-    async function handleSubmit(e: React.FormEvent) {
+    const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
-        setError('');
         setLoading(true);
 
+        // For MVP, we'll try to sign in with email/password where email is phone@thehub.com mock
+        // or just use standard email input. The prompt asked for Phone + Password.
+        // We will simulate logging in.
+
         try {
-            const supabase = createBrowserClient(
-                process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-                process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-            );
-            const { error } = await supabase.auth.signInWithPassword({ email, password });
-            if (error) {
-                if (error.message.includes('Invalid')) setError('الإيميل أو كلمة السر غلط');
-                else setError('حصل مشكلة، جرب تاني');
-                return;
-            }
+            const { error } = await supabase.auth.signInWithPassword({
+                email: `${phone}@thehub.com`, // Artificial email construction for phone login
+                password
+            });
+
+            if (error) throw error;
             router.push('/');
-        } catch (err) {
-            setError('حصل مشكلة، جرب تاني');
+        } catch (error) {
+            alert('البيانات غلط يا معلم، حاول تاني');
         } finally {
             setLoading(false);
         }
-    }
+    };
 
     return (
-        <div className="min-h-screen flex items-center justify-center p-4">
-            <div className="w-full max-w-md">
-                <div className="text-center mb-8">
-                    <div className="w-20 h-20 rounded-2xl gradient-main flex items-center justify-center font-bold text-4xl text-white mx-auto mb-4">H</div>
-                    <h1 className="text-2xl font-bold">أهلاً بيك في The Hub</h1>
-                    <p className="text-workspace-muted mt-2">سجل دخولك عشان تبدأ</p>
+        <div className="min-h-screen bg-[#0a0a0f] text-white flex flex-col items-center justify-center p-6 relative overflow-hidden">
+            {/* Background Effects */}
+            <div className="absolute top-[-10%] right-[-10%] w-64 h-64 bg-hub-red/20 rounded-full blur-[80px]" />
+            <div className="absolute bottom-[-10%] left-[-10%] w-64 h-64 bg-hub-orange/20 rounded-full blur-[80px]" />
+
+            <div className="w-full max-w-md space-y-8 relative z-10">
+                <div className="text-center space-y-2">
+                    <h1 className="text-4xl font-bold font-arabic bg-hub-gradient bg-clip-text text-transparent">The Hub</h1>
+                    <p className="text-gray-400">مساحتك للإبداع والترفيه</p>
                 </div>
 
-                <form onSubmit={handleSubmit} className="card space-y-4">
-                    {error && <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm">{error}</div>}
-
-                    <div>
-                        <label className="block text-sm text-workspace-muted mb-2">الإيميل</label>
-                        <div className="relative">
-                            <Mail className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-workspace-muted" />
-                            <input type="email" required value={email} onChange={e => setEmail(e.target.value)} className="input pr-12" placeholder="example@email.com" />
+                <form onSubmit={handleLogin} className="space-y-6 bg-glass-white border border-glass-border p-8 rounded-3xl backdrop-blur-xl shadow-2xl">
+                    <div className="space-y-4">
+                        <div className="bg-black/20 border border-white/10 rounded-xl px-4 py-3 flex items-center gap-3 focus-within:border-hub-orange transition">
+                            <Phone className="text-gray-400" />
+                            <input
+                                type="tel"
+                                placeholder="رقم التليفون"
+                                value={phone}
+                                onChange={e => setPhone(e.target.value)}
+                                className="bg-transparent flex-1 outline-none text-right font-bold"
+                                required
+                            />
+                        </div>
+                        <div className="bg-black/20 border border-white/10 rounded-xl px-4 py-3 flex items-center gap-3 focus-within:border-hub-orange transition">
+                            <Lock className="text-gray-400" />
+                            <input
+                                type="password"
+                                placeholder="كلمة السر"
+                                value={password}
+                                onChange={e => setPassword(e.target.value)}
+                                className="bg-transparent flex-1 outline-none text-right font-bold"
+                                required
+                            />
                         </div>
                     </div>
 
-                    <div>
-                        <label className="block text-sm text-workspace-muted mb-2">كلمة السر</label>
-                        <div className="relative">
-                            <Lock className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-workspace-muted" />
-                            <input type={showPassword ? 'text' : 'password'} required value={password} onChange={e => setPassword(e.target.value)} className="input pr-12 pl-12" placeholder="••••••••" />
-                            <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute left-4 top-1/2 -translate-y-1/2">
-                                {showPassword ? <EyeOff className="w-5 h-5 text-workspace-muted" /> : <Eye className="w-5 h-5 text-workspace-muted" />}
-                            </button>
-                        </div>
-                    </div>
-
-                    <button type="submit" disabled={loading} className="btn btn-primary w-full">
-                        {loading ? 'جاري التحميل...' : 'دخول'}
+                    <button
+                        type="submit"
+                        disabled={loading}
+                        className="w-full py-4 rounded-xl bg-hub-gradient text-white font-bold text-lg shadow-glow hover:opacity-90 transition disabled:opacity-50"
+                    >
+                        {loading ? 'جاري الدخول...' : 'خش برجلك اليمين'}
                     </button>
-                </form>
 
-                <p className="text-center mt-6 text-workspace-muted">
-                    معندكش حساب؟{' '}
-                    <Link href="/register" className="text-hub-orange font-medium">سجل دلوقتي</Link>
-                </p>
+                    <div className="text-center pt-2">
+                        <p className="text-gray-400 text-sm">
+                            أول مرة تنورنا؟ {' '}
+                            <Link href="/signup" className="text-hub-orange font-bold hover:underline">
+                                اعمل حساب جديد
+                            </Link>
+                        </p>
+                    </div>
+                </form>
             </div>
         </div>
     );

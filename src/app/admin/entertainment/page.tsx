@@ -1,113 +1,60 @@
-// =====================================================
-// The Hub - Entertainment Hub Page (ليالي الألعاب)
-// =====================================================
-
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Gamepad2, Plus, X, Trophy, Users, Calendar, Clock, Gift } from 'lucide-react';
-import { supabase } from '@/lib/supabase/client';
-import { formatDate, formatCurrency } from '@/lib/utils';
-import type { GameNight, Tournament } from '@/types/database';
+import { Gamepad2, Trophy, Clock, Users } from 'lucide-react';
 
 export default function EntertainmentPage() {
-    const [gameNights, setGameNights] = useState<GameNight[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [showModal, setShowModal] = useState(false);
-
-    useEffect(() => { fetchData(); }, []);
-
-    async function fetchData() {
-        const { data } = await supabase.from('game_nights').select('*, tournaments(*)').order('event_date', { ascending: false });
-        setGameNights(data || []);
-        setLoading(false);
-    }
-
-    const upcoming = gameNights.find(g => g.status === 'upcoming');
-    const past = gameNights.filter(g => g.status === 'completed');
-
     return (
-        <div className="space-y-6">
-            <div className="flex justify-between items-center">
-                <h1 className="text-2xl font-bold">Entertainment Hub</h1>
-                <button onClick={() => setShowModal(true)} className="btn btn-primary"><Plus className="w-5 h-5" />ليلة ألعاب جديدة</button>
-            </div>
+        <div className="space-y-8">
+            <h1 className="text-2xl font-bold">إدارة الترفيه (Entertainment Hub)</h1>
 
-            {/* ليلة الألعاب القادمة */}
-            {upcoming && (
-                <div className="card gradient-border">
-                    <div className="flex items-center gap-4 mb-4">
-                        <div className="p-4 rounded-2xl bg-purple-500/20"><Gamepad2 className="w-8 h-8 text-purple-400" /></div>
-                        <div>
-                            <h2 className="text-2xl font-bold">{upcoming.title}</h2>
-                            <p className="text-workspace-muted">{upcoming.description}</p>
+            {/* Next Event */}
+            <div className="bg-gradient-to-r from-purple-900/40 to-pink-900/40 border border-purple-500/30 rounded-3xl p-8 relative overflow-hidden">
+                <div className="relative z-10 flex justify-between items-center">
+                    <div>
+                        <div className="flex items-center gap-2 text-purple-400 mb-2">
+                            <Trophy size={20} />
+                            <span className="font-bold">البطولة القادمة</span>
+                        </div>
+                        <h2 className="text-4xl font-bold mb-4">FIFA 24 Championship</h2>
+                        <div className="flex gap-6 text-gray-300">
+                            <div className="flex items-center gap-2">
+                                <Clock size={18} />
+                                <span>الخميس، 8:00 مساءً</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Users size={18} />
+                                <span>32 مشترك</span>
+                            </div>
                         </div>
                     </div>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div className="p-4 bg-white/5 rounded-xl text-center"><Calendar className="w-5 h-5 mx-auto mb-2 text-hub-orange" /><div className="font-bold">{formatDate(upcoming.event_date)}</div><div className="text-xs text-workspace-muted">التاريخ</div></div>
-                        <div className="p-4 bg-white/5 rounded-xl text-center"><Clock className="w-5 h-5 mx-auto mb-2 text-hub-orange" /><div className="font-bold">{upcoming.start_time}</div><div className="text-xs text-workspace-muted">البداية</div></div>
-                        <div className="p-4 bg-white/5 rounded-xl text-center"><Gift className="w-5 h-5 mx-auto mb-2 text-hub-orange" /><div className="font-bold">{formatCurrency(upcoming.total_prizes_value)}</div><div className="text-xs text-workspace-muted">الجوائز</div></div>
-                        <div className="p-4 bg-white/5 rounded-xl text-center"><Users className="w-5 h-5 mx-auto mb-2 text-hub-orange" /><div className="font-bold">{formatCurrency(upcoming.entry_fee)}</div><div className="text-xs text-workspace-muted">رسم الدخول</div></div>
+                    <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 text-center">
+                        <div className="text-sm text-gray-400 mb-1">العد التنازلي</div>
+                        <div className="text-3xl font-mono font-bold">02:14:30</div>
                     </div>
-                </div>
-            )}
-
-            {/* السجل */}
-            <div className="card">
-                <h3 className="font-bold text-lg mb-4">ليالي الألعاب السابقة</h3>
-                <div className="table-container">
-                    <table className="table">
-                        <thead><tr><th>الاسم</th><th>التاريخ</th><th>الجوائز</th><th>الحالة</th></tr></thead>
-                        <tbody>
-                            {past.map(gn => (
-                                <tr key={gn.id}>
-                                    <td className="font-medium">{gn.title}</td>
-                                    <td>{formatDate(gn.event_date)}</td>
-                                    <td className="text-hub-orange">{formatCurrency(gn.total_prizes_value)}</td>
-                                    <td><span className="badge badge-success">انتهت</span></td>
-                                </tr>
-                            ))}
-                            {past.length === 0 && <tr><td colSpan={4} className="text-center py-8 text-workspace-muted">لا توجد ليالي سابقة</td></tr>}
-                        </tbody>
-                    </table>
                 </div>
             </div>
 
-            {showModal && <GameNightModal onClose={() => setShowModal(false)} onSave={() => { fetchData(); setShowModal(false); }} />}
-        </div>
-    );
-}
-
-function GameNightModal({ onClose, onSave }: { onClose: () => void; onSave: () => void }) {
-    const [form, setForm] = useState({ title: '', description: '', event_date: '', start_time: '18:00', entry_fee: 0, total_prizes_value: 0 });
-    const [loading, setLoading] = useState(false);
-
-    async function handleSubmit(e: React.FormEvent) {
-        e.preventDefault();
-        setLoading(true);
-        await supabase.from('game_nights').insert([{ ...form, status: 'upcoming' }]);
-        onSave();
-    }
-
-    return (
-        <div className="modal-overlay" onClick={onClose}>
-            <div className="modal" onClick={e => e.stopPropagation()}>
-                <div className="modal-header"><h2 className="text-xl font-bold">ليلة ألعاب جديدة</h2><button onClick={onClose}><X className="w-5 h-5" /></button></div>
-                <form onSubmit={handleSubmit}>
-                    <div className="modal-body space-y-4">
-                        <div><label className="block text-sm mb-2">اسم الليلة</label><input required value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} className="input" placeholder="مثال: ليلة بلوت" /></div>
-                        <div><label className="block text-sm mb-2">الوصف</label><textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} className="input" rows={2} /></div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div><label className="block text-sm mb-2">التاريخ</label><input type="date" required value={form.event_date} onChange={e => setForm({ ...form, event_date: e.target.value })} className="input" /></div>
-                            <div><label className="block text-sm mb-2">الوقت</label><input type="time" value={form.start_time} onChange={e => setForm({ ...form, start_time: e.target.value })} className="input" /></div>
+            {/* Tournaments List */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="bg-glass-white border border-glass-border p-6 rounded-2xl opacity-75">
+                    <h3 className="font-bold text-gray-400 mb-2">بطولة سابقة</h3>
+                    <h4 className="text-xl font-bold mb-4">Valorant 5v5</h4>
+                    <div className="space-y-2">
+                        <div className="flex justify-between p-2 bg-yellow-500/10 rounded-lg">
+                            <span>🥇 الفريق الفائز</span>
+                            <span className="font-bold text-yellow-500">Team Alpha</span>
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div><label className="block text-sm mb-2">رسم الدخول</label><input type="number" min="0" value={form.entry_fee} onChange={e => setForm({ ...form, entry_fee: +e.target.value })} className="input" /></div>
-                            <div><label className="block text-sm mb-2">إجمالي الجوائز</label><input type="number" min="0" value={form.total_prizes_value} onChange={e => setForm({ ...form, total_prizes_value: +e.target.value })} className="input" /></div>
+                        <div className="flex justify-between p-2 bg-gray-500/10 rounded-lg">
+                            <span>🥈 المركز الثاني</span>
+                            <span>Team Beta</span>
                         </div>
                     </div>
-                    <div className="modal-footer"><button type="button" onClick={onClose} className="btn btn-secondary">إلغاء</button><button type="submit" className="btn btn-primary" disabled={loading}>{loading ? '...' : 'إنشاء'}</button></div>
-                </form>
+                </div>
+
+                <button className="bg-white/5 border border-dashed border-gray-600 rounded-2xl flex flex-col items-center justify-center p-6 text-gray-400 hover:text-white hover:border-white transition min-h-[200px]">
+                    <Gamepad2 size={40} className="mb-4" />
+                    <span className="font-bold text-lg">إنشاء بطولة جديدة</span>
+                </button>
             </div>
         </div>
     );
